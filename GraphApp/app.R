@@ -14,31 +14,49 @@ library(igraph)
 # - a main panel with a plot output
 ui <- fluidPage(
   titlePanel("Graph App"),
-
   sidebarLayout(
-
     sidebarPanel(
-      selectInput("genAlgo", "Generation Algorithm",
-        c("Erdos-Renyi", "Barabasi-Albert")),
-      conditionalPanel(condition = "input.genAlgo == 'Erdos-Renyi'",
+      selectInput(
+        "genAlgo", "Generation Algorithm",
+        c("Erdos-Renyi", "Barabasi-Albert")
+      ),
+      conditionalPanel(
+        condition = "input.genAlgo == 'Erdos-Renyi'",
         textInput("n", "Number of vertices", "10"),
-        textInput("p", "Probability", "0.5")),
-      conditionalPanel(condition = "input.genAlgo == 'Barabasi-Albert'",
+        textInput("p", "Probability", "0.5")
+      ),
+      conditionalPanel(
+        condition = "input.genAlgo == 'Barabasi-Albert'",
         textInput("n", "Number of vertices", "10"),
-        textInput("m", "Number of edges to attach", "3")),
+        textInput("m", "Number of edges to attach", "3")
+      ),
       actionButton("genButton", "Generate"),
-      selectInput("execAlgo", "Execution Algorithm",
-        c("Breadth-First Search", "Dijkstra")),
-      conditionalPanel(condition = "input.execAlgo == 'Breadth-First Search'",
-        textInput("source", "Source vertex", "1")),
-      conditionalPanel(condition = "input.execAlgo == 'Dijkstra'",
+      selectInput(
+        "execAlgo", "Execution Algorithm",
+        c("Breadth-First Search", "Dijkstra")
+      ),
+      conditionalPanel(
+        condition = "input.execAlgo == 'Breadth-First Search'",
+        textInput("source", "Source vertex", "1")
+      ),
+      conditionalPanel(
+        condition = "input.execAlgo == 'Dijkstra'",
         textInput("source", "Source vertex", "1"),
-        textInput("target", "Target vertex", "10")),
+        textInput("target", "Target vertex", "10")
+      ),
       actionButton("execButton", "Execute")
     ),
-
     mainPanel(
-      plotOutput("graphPlot")
+      tabsetPanel(
+        tabPanel(
+          "Graph",
+          plotOutput("graphPlot")
+        ),
+        tabPanel(
+          "Results",
+          tableOutput("result")
+        )
+      )
     )
   )
 )
@@ -54,38 +72,50 @@ renderGraph <- function(output, g) {
 
 # Define server logic
 server <- function(input, output, session) {
-  graph <- reactiveVal(NULL)
-  out <- reactiveVal(NULL)
-
   # Generate the graph
   observeEvent(input$genButton, {
     if (input$genAlgo == "Erdos-Renyi") {
-      g <- erdos.renyi.game(
+      session$userData$graph <- erdos.renyi.game(
         n = as.numeric(input$n),
         p = as.numeric(input$p)
       )
     } else if (input$genAlgo == "Barabasi-Albert") {
-      g <- barabasi.game(
+      session$userData$graph <- barabasi.game(
         n = as.numeric(input$n),
         m = as.numeric(input$m)
       )
     }
 
-    renderGraph(output, g)
-    graph(g)
+    renderGraph(output, session$userData$graph)
   })
 
   # Execute the algorithm
   observeEvent(input$execButton, {
-    g <- graph()
-
     if (input$execAlgo == "Breadth-First Search") {
-      out <- get.shortest.paths(g, from = as.numeric(input$source))
+      data <- get.shortest.paths(session$userData$graph,
+        from = as.numeric(input$source)
+      )
+      print(data)
+      # format data$vpath vector as a string
+      output$result <- renderTable({
+        data.frame(
+          vertex = seq_along(data$vpath),
+          path = data$vpath
+        )
+      })
     } else if (input$execAlgo == "Dijkstra") {
-      out <- get.shortest.paths(g, from = as.numeric(input$source), to = as.numeric(input$target))
+      data <- get.shortest.paths(session$userData$graph,
+        from = as.numeric(input$source), to = as.numeric(input$target)
+      )
+      print(data)
+      # format data$vpath vector as a string
+      output$result <- renderTable({
+        data.frame(
+          vertex = seq_along(data$vpath),
+          path = data$vpath
+        )
+      })
     }
-
-    print(out)
   })
 
   # render default with null
@@ -93,4 +123,4 @@ server <- function(input, output, session) {
 }
 
 # Run the application
-shinyApp(ui = ui, server = server);
+shinyApp(ui = ui, server = server)
