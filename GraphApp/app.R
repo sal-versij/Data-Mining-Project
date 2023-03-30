@@ -1,92 +1,71 @@
 set.seed(42)
 library(shiny)
+library(shinyjs)
 library(shinyalert)
 library(igraph)
 
 ui <- fluidPage(
   titlePanel("Graph App"),
-  sidebarLayout(
-    sidebarPanel(
-      tags$div(
-        selectInput(
-          "genAlgo", "Generation Algorithm",
-          c(
-            "Erdos-Renyi G(n,p)", "Erdos-Renyi G(n,m)",
-            "Watts-Strogatz", "Barabasi-Albert"
-          )
-        ),
-        conditionalPanel(
-          condition = "input.genAlgo == 'Erdos-Renyi G(n,p)'",
-          numericInput("n", "Number of vertices", 10,
-            min = 1, max = 1000
-          ),
-          numericInput("p", "Probability", 0.5,
-            min = 0, max = 1, step = 0.01
-          )
-        ),
-        conditionalPanel(
-          condition = "input.genAlgo == 'Erdos-Renyi G(n,m)'",
-          numericInput("n", "Number of vertices", 10,
-            min = 1, max = 1000
-          ),
-          numericInput("m", "Number of edges", 5,
-            min = 0, max = 1000
-          )
-        ),
-        conditionalPanel(
-          condition = "input.genAlgo == 'Watts-Strogatz'",
-          numericInput("dim", "Dimensionality starting lattice", 2,
-            min = 1, max = 3
-          ),
-          numericInput("size", "Lattice size along each dimension", 5,
-            min = 1, max = 30
-          ),
-          numericInput("nei", "Neighborhood connectivity", 1,
-            min = 1, max = 30
-          ),
-          numericInput("p", "Rewiring probability", 0.1,
-            min = 0, max = 1, step = 0.01
-          )
-        ),
-        conditionalPanel(
-          condition = "input.genAlgo == 'Barabasi-Albert'",
-          numericInput("n", "Number of vertices", 10,
-            min = 1, max = 1000
-          ),
-          numericInput("power", "Power law exponent", 1,
-            min = 1, max = 10
-          ),
-          numericInput("m", "Number of edges to attach", 3,
-            min = 0, max = 1000
-          )
-        ),
-        actionButton("genButton", "Generate"),
-      ),
-      tags$hr(style = "border-color: black;"),
-      conditionalPanel(
-        condition = "output.graphPlot",
-        tags$div(
+  tabsetPanel(
+    tabPanel(
+      "Graph",
+      sidebarLayout(
+        sidebarPanel(
           selectInput(
-            "execAlgo", "Execution Algorithm",
-            c("Breadth-First Search", "Dijkstra")
+            "genAlgo", "Generation Algorithm",
+            c(
+              "Erdos-Renyi G(n,p)", "Erdos-Renyi G(n,m)",
+              "Watts-Strogatz", "Barabasi-Albert"
+            )
           ),
           conditionalPanel(
-            condition = "input.execAlgo == 'Breadth-First Search'",
-            numericInput("source", "Source vertex", 1)
+            condition = "input.genAlgo == 'Erdos-Renyi G(n,p)'",
+            numericInput("n", "Number of vertices", 10,
+              min = 1, max = 1000
+            ),
+            numericInput("p", "Probability", 0.5,
+              min = 0, max = 1, step = 0.01
+            )
           ),
           conditionalPanel(
-            condition = "input.execAlgo == 'Dijkstra'",
-            numericInput("source", "Source vertex", 1),
-            numericInput("target", "Target vertex", 10)
+            condition = "input.genAlgo == 'Erdos-Renyi G(n,m)'",
+            numericInput("n", "Number of vertices", 10,
+              min = 1, max = 1000
+            ),
+            numericInput("m", "Number of edges", 5,
+              min = 0, max = 1000
+            )
           ),
-          actionButton("execButton", "Execute")
-        )
-      )
-    ),
-    mainPanel(
-      tabsetPanel(
-        tabPanel(
-          "Graph",
+          conditionalPanel(
+            condition = "input.genAlgo == 'Watts-Strogatz'",
+            numericInput("dim", "Dimensionality starting lattice", 2,
+              min = 1, max = 3
+            ),
+            numericInput("size", "Lattice size along each dimension", 5,
+              min = 1, max = 30
+            ),
+            numericInput("nei", "Neighborhood connectivity", 1,
+              min = 1, max = 30
+            ),
+            numericInput("p", "Rewiring probability", 0.1,
+              min = 0, max = 1, step = 0.01
+            )
+          ),
+          conditionalPanel(
+            condition = "input.genAlgo == 'Barabasi-Albert'",
+            numericInput("n", "Number of vertices", 10,
+              min = 1, max = 1000
+            ),
+            numericInput("power", "Power law exponent", 1,
+              min = 1, max = 10
+            ),
+            numericInput("m", "Number of edges to attach", 3,
+              min = 0, max = 1000
+            )
+          ),
+          actionButton("genButton", "Generate"),
+        ),
+        mainPanel(
           tags$div(
             selectInput(
               "layout", "Layout",
@@ -97,37 +76,63 @@ ui <- fluidPage(
             ),
           ),
           plotOutput("graphPlot")
+        )
+      )
+    ),
+    tabPanel(
+      "Graph info",
+      tags$dl(
+        tags$dt("Number of verticies"),
+        tags$dd(textOutput("vcount")),
+        tags$dt("Number of edges"),
+        tags$dd(textOutput("ecount")),
+        tags$dt("Edge density"),
+        tags$dd(textOutput("edge_density")),
+        tags$dt("Local clustering coeficient"),
+        tags$dd(textOutput("local_clustering")),
+        tags$dt("Global clustering coeficient"),
+        tags$dd(textOutput("global_clustering")),
+        tags$dt("Diameter"),
+        tags$dd(textOutput("diameter")),
+        tags$dt("Mean distance"),
+        tags$dd(textOutput("mean_distance")),
+        tags$dt("Degree distribution"),
+        tags$dd(plotOutput("degree", width = "50%")),
+        tags$dt("Degree centrality"),
+        tags$dd(textOutput("degee_centrality")),
+        tags$dt("Closeness centrality"),
+        tags$dd(textOutput("closeness_centrality")),
+        tags$dt("Betweenness centrality"),
+        tags$dd(textOutput("betweenness_centrality")),
+        tags$dt("Triangles"),
+        tags$dd(
+          textOutput("triangles_count"),
+          tableOutput("triangles_table")
         ),
-        tabPanel(
-          "Graph infos",
-          tags$dl(
-            tags$dt("Number of verticies"),
-            tags$dd(textOutput("vcount")),
-            tags$dt("Number of edges"),
-            tags$dd(textOutput("ecount")),
-            tags$dt("Edge density"),
-            tags$dd(textOutput("edge_density")),
-            tags$dt("Local clustering coeficient"),
-            tags$dd(textOutput("local_clustering")),
-            tags$dt("Global clustering coeficient"),
-            tags$dd(textOutput("global_clustering")),
-            tags$dt("Diameter"),
-            tags$dd(textOutput("diameter")),
-            tags$dt("Mean distance"),
-            tags$dd(textOutput("mean_distance")),
-            tags$dt("Degree distribution"),
-            tags$dd(plotOutput("degree", width = "50%")),
-            tags$dt("Degree centrality"),
-            tags$dd(textOutput("degee_centrality")),
-            tags$dt("Closeness centrality"),
-            tags$dd(textOutput("closeness_centrality")),
-            tags$dt("Betweenness centrality"),
-            tags$dd(textOutput("betweenness_centrality")),
-          )
+      )
+    ),
+    tabPanel(
+      "Path search",
+      sidebarLayout(
+        sidebarPanel(
+          selectInput(
+            "execAlgo", "Execution Algorithm",
+            c("Source to Target", "Source to All")
+          ),
+          conditionalPanel(
+            condition = "input.execAlgo == 'Source to All'",
+            numericInput("source", "Source vertex", 1)
+          ),
+          conditionalPanel(
+            condition = "input.execAlgo == 'Source to Target'",
+            numericInput("source", "Source vertex", 1),
+            numericInput("target", "Target vertex", 10)
+          ),
+          actionButton("execButton", "Execute")
         ),
-        tabPanel(
-          "Results",
-          tableOutput("result")
+        mainPanel(
+          plotOutput("graphPlot2"),
+          uiOutput("path_search_result")
         )
       )
     )
@@ -136,7 +141,11 @@ ui <- fluidPage(
 
 render_graph <- function(output, g, l) {
   output$graphPlot <- renderPlot({
-    print("generating graph...")
+    if (!is.null(g)) {
+      plot(g, layout = l)
+    }
+  })
+  output$graphPlot2 <- renderPlot({
     if (!is.null(g)) {
       plot(g, layout = l)
     }
@@ -223,6 +232,22 @@ render_graph <- function(output, g, l) {
       "N/A"
     }
   })
+  output$triangles_count <- renderText({
+    if (!is.null(g)) {
+      t <- cliques(g, min = 3, max = 3)
+      length(t)
+    } else {
+      "N/A"
+    }
+  })
+  output$triangles_table <- renderTable({
+    if (!is.null(g)) {
+      t <- cliques(g, min = 3, max = 3)
+      data.frame(matrix(unlist(t), nrow = length(t), byrow = T))
+    } else {
+      data.frame(matrix(ncol = 3, nrow = 0))
+    }
+  })
 }
 
 choose_layout <- function(g, layout) {
@@ -284,31 +309,48 @@ server <- function(input, output, session) {
 
   # Execute the algorithm
   observeEvent(input$execButton, {
-    if (input$execAlgo == "Breadth-First Search") {
-      data <- get.shortest.paths(session$userData$graph,
-        from = input$source
-      )
-      print(data)
-      # format data$vpath vector as a string
-      output$result <- renderTable({
-        data.frame(
-          vertex = seq_along(data$vpath),
-          path = data$vpath
-        )
-      })
-    } else if (input$execAlgo == "Dijkstra") {
-      data <- get.shortest.paths(session$userData$graph,
-        from = input$source, to = input$target
-      )
-      print(data)
-      # format data$vpath vector as a string
-      output$result <- renderTable({
-        data.frame(
-          vertex = seq_along(data$vpath),
-          path = data$vpath
-        )
-      })
-    }
+    tryCatch(
+      {
+        if (input$execAlgo == "Source to All") {
+          data <- get.shortest.paths(
+            session$userData$graph,
+            from = input$source,
+            output = "vpath"
+          )
+          paths <- sapply(
+            data$vpath,
+            function(x) paste(x, collapse = "->")
+          )
+
+          df <- data.frame(
+            vertex = seq_along(data$vpath),
+            path = paths
+          )
+
+          output$path_search_result <- renderUI({
+            renderTable(df)
+          })
+        } else if (input$execAlgo == "Source to Target") {
+          data <- get.shortest.paths(session$userData$graph,
+            from = input$source,
+            to = input$target,
+            output = "vpath"
+          )
+
+          output$path_search_result <- renderUI({
+            tags$dl(
+              tags$dt("Shortest path"),
+              tags$dd(
+                renderText(paste(data$vpath[[1]], collapse = "->"))
+              ),
+            )
+          })
+        }
+      },
+      error = function(e) {
+        shinyalert(title = "Error", text = e$message, type = "error")
+      }
+    )
   })
 
   # Rerender with layout
